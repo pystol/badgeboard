@@ -1,0 +1,103 @@
+<!--
+ *
+ * Copyright 2019 pystol.org - All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @author: Carlos Camacho <carloscamachoucv@gmail.com>
+ *
+-->
+
+<html>
+  <head>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+  </head>
+  <body>
+
+  <canvas id="canvas" width="300" height="227" style="float:left"></canvas>
+
+  <div id="color" style="width: 200px; height: 50px; float: left; background: rgba(0, 0, 0, 0);">rgba(0, 0, 0, 0)</div>
+
+  <script>
+    $(document).ready(function(){
+      fillDashobard();
+    });
+
+    function procResponse(data,title,description,link,measure_x,measure_y,color_good,color_warn,color_broken){
+      var serializedSVG = new XMLSerializer().serializeToString(data);
+      var base64Data = window.btoa(serializedSVG);
+      console.log("data:image/svg+xml;base64," + base64Data);
+      var img = new Image();
+      img.src = "data:image/svg+xml;base64," + base64Data;
+      var canvas = document.getElementById('canvas');
+      var ctx = canvas.getContext('2d');
+      img.onload = function() {
+        ctx.drawImage(img, 0, 0);
+        img.style.display = 'none';
+        var x=measure_x;
+        var y=measure_y;
+        var data = ctx.getImageData(x, y, 1, 1).data;
+        var rgb = [ data[0], data[1], data[2] ];
+        alert("Check on the console the coordinates and the RGB color");
+      };
+      var color = document.getElementById('color');
+      function pick(event) {
+        var x = event.layerX;
+        var y = event.layerY;
+        console.log(x+"---"+y);
+        var pixel = ctx.getImageData(x, y, 1, 1);
+        var data = pixel.data;
+        var rgba = 'rgb(' + data[0] + ', ' + data[1] +
+                   ', ' + data[2] + ')';
+        color.style.background =  rgba;
+        color.textContent = rgba;
+        console.log(x+"---"+y+"---"+rgba);
+      }
+      canvas.addEventListener('mousemove', pick);
+    }
+
+    function retrieveData(i){
+      $.ajax({
+        url: i['uri'],
+        type: 'GET',
+        success: function (data) {
+                   procResponse(data,i['title'],i['description'],i['link'],i['measure_x'],i['measure_y'],i['color_good'],i['color_warn'],i['color_broken']);
+                 },
+         error: function(data) {
+                  console.log(data);
+                }
+      });
+    }
+
+    function fillDashobard() {
+      var posts = [];
+      var corssproxy = 'https://cors-anywhere.herokuapp.com/';
+      var urls = [
+        {
+        uri: corssproxy + 'https://img.shields.io/github/issues/pystol/pystol',
+        title: "Title goes here",
+        description: 'Description goes here',
+        link: 'http://www.bing.com',
+        measure_x: '170',
+          measure_y: '3',
+          color_good:'48,196,82',
+          color_warn:'197,105,30',
+          color_broken: '0x000000'}
+       ];
+       for (var i in urls) {
+         retrieveData(urls[i]);
+       }
+     }
+    </script>
+  </body>
+</html>

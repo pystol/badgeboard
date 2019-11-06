@@ -1,0 +1,278 @@
+<!--
+ *
+ * Copyright 2019 pystol.org - All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @author: Carlos Camacho <carloscamachoucv@gmail.com>
+ *
+-->
+
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <!--
+    Basic information
+    -->
+    <title>Badgeboard - pystol.org</title>
+    <link rel="icon" href="assets/images/favicon.png">
+    <meta name="keywords" content="dashboard, badges, html, report, information radiator, pystol"/>
+    <meta name="description" content="Dashboard to show your badges information, clear and straight in your project monitor"/>
+    <meta name="subject" content="Badgeboard, your status badges as a CI dashboard">
+    <meta name="copyright"content="Pystol - badgeboard - www.pystol.org">
+    <meta name="language" content="EN">
+    <meta name="url" content="https://www.pystol.org/badgeboard">
+    <meta name="identifier-URL" content="https://www.pystol.org/badgeboard">
+    <!--
+    Includes
+    -->
+    <link rel="stylesheet" type="text/css" href="assets/css/demo.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/custom.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/jquery.gridster.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="assets/js/jquery.gridster.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="assets/js/ntc.js"></script>
+    <script src="assets/data_source/badges_list.js"></script>
+    <link rel="stylesheet" type="text/css" href="http://dashingdemo.herokuapp.com/assets/application.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/badgeboard.css">
+</head>
+<body data-gr-c-s-loaded="true">
+  <div id="container">
+    <div class="gridster ready" style="width: 1240px;">
+      <ul id='widgetBoard' style="height: 740px; position: relative;"></ul>
+    </div>
+  </div>
+
+<script>
+  $(document).ready(function(){
+    var gridster = null;
+    gridster = $(".gridster ul").gridster({
+      widget_base_dimensions: ['auto', 140],
+      autogenerate_stylesheet: true,
+      min_cols: 1,
+      max_cols: 6,
+      widget_margins: [5, 5],
+      resize: {
+        enabled: true
+      }
+    }).data('gridster');
+    $('.gridster  ul').css({'padding': '0'});
+    fillDashobard(gridster);
+  });
+
+  function procResponse(gridster,data,i){
+    if(data != null){
+      /*
+      Here we will process the badges as we need to
+      render the widget color based on the pixel data
+      from the badge SVG file.
+      */
+      var serializedSVG = new XMLSerializer().serializeToString(data);
+      var base64Data = window.btoa(serializedSVG);
+      console.log("data:image/svg+xml;base64," + base64Data);
+      var img = new Image();
+      img.src = "data:image/svg+xml;base64," + base64Data;
+      var canvas = document.createElement('canvas');
+      var ctx = canvas.getContext('2d');
+      img.onload = function() {
+        ctx.drawImage(img, 0, 0);
+        img.style.display = 'none';
+        var x=i['measure'].x;
+        var y=i['measure'].y;
+        var data = ctx.getImageData(x, y, 1, 1).data;
+        var rgb = [ data[0], data[1], data[2] ];
+        var color_widget_type = "status-undefined";
+
+        for (var colo in i['colors']) {
+          /*
+          colo variable has the aray index to get the color based
+          on the rgb pixel data.
+          */
+          if(String(rgb) === String(i['colors'][colo][1])){
+            color_widget_type = i['colors'][colo][0];
+            break;
+          }
+        }
+        if (color_widget_type === "status-undefined"){
+          /*
+          If this condition is met, it means that we were not able to
+          match exactly the measured color with the corresponding RGB
+          value in badges_list.js. In this case, we will try to make a
+          safe default check to verify common colors based on the RGB data.
+          */
+
+          console.log('There is not a direct match between the measured color and the config');
+
+          r = rgb[0].toString(16);
+          g = rgb[1].toString(16);
+          b = rgb[2].toString(16);
+          if (r.length == 1)
+            r = "0" + r;
+          if (g.length == 1)
+            g = "0" + g;
+          if (b.length == 1)
+            b = "0" + b;
+          var n_match  = ntc.name(String("#" + r + g + b));
+
+          switch (n_match[3]) {
+            case 'Red':
+              color_widget_type = "status-warning";
+              break;
+            case 'Orange':
+              color_widget_type = "widget-text";
+              break;
+            case 'Yellow':
+              color_widget_type = "status-danger";
+              break;
+            case 'Green':
+              color_widget_type = "status-good";
+              break;
+            case 'Blue':
+              color_widget_type = "widget-ocean";
+              break;
+            case 'Violet':
+              color_widget_type = "widget-meter";
+              break;
+            case 'Brown':
+              color_widget_type = "status-warning";
+              break;
+            case 'Black':
+              color_widget_type = "status-warning";
+              break;
+            case 'Grey':
+              color_widget_type = "status-undefined";
+              break;
+            case 'White':
+              color_widget_type = "widget-logo";
+              break;
+          }
+        }
+
+        var widget = "\
+          <li> \
+            <div class='widget "+color_widget_type+"'> \
+              <h1 class='title'>"+i['title']+"</h1> \
+              <p class='updated-at'>"+i['description']+"</p> \
+              <a class='more-info' href='"+i['link']+"'> \
+              </a> \
+            </div> \
+          </li> \
+        ";
+        gridster.add_widget.apply(gridster, [widget, i['size'].x, i['size'].y, i['position'].x, i['position'].y]);
+      };
+    }else{
+      /*
+      Here we will process all the other types of widgets
+      like the logo, clock and text.
+      */
+      var widget = '';
+      var expr = i['type'];
+      switch(expr){
+        case 'clock':
+          /* The clock widget goes here*/
+          var widget = "\
+          <li> \
+            <div class='widget "+i['color']+"'> \
+              <h1 class='title' id='datebox'</h1> \
+              <h3 id='timebox'></h3> \
+              <p class='updated-at'  id='daybox'></p> \
+            </div> \
+          </li> \
+          ";
+          gridster.add_widget.apply(gridster, [widget, i['size'].x, i['size'].y, i['position'].x, i['position'].y]);
+          GetClock();
+          setInterval(GetClock,1000);
+          break;
+
+        case 'picture':
+          /* The picture widget goes here*/
+          var widget = "\
+          <li> \
+            <div class='widget "+i['color']+"'> \
+              <img src="+i['src']+"> \
+            </div> \
+          </li> \
+          ";
+          gridster.add_widget.apply(gridster, [widget, i['size'].x, i['size'].y, i['position'].x, i['position'].y]);
+          break;
+
+        case 'text':
+          /* The picture widget goes here*/
+          var widget = "\
+          <li> \
+            <div class='widget "+i['color']+"'> \
+              <h1 class='title'>"+i['title']+"</h1> \
+              <h3>"+i['subtitle']+"</h3> \
+              <p class='updated-at'>"+i['description']+"</p> \
+            </div> \
+          </li> \
+          ";
+          gridster.add_widget.apply(gridster, [widget, i['size'].x, i['size'].y, i['position'].x, i['position'].y]);
+        break;
+      }
+    }
+  }
+
+  function retrieveData(i,gridster){
+    if(i['type'] === 'badge'){
+      $.ajax({
+        url: i['uri'],
+        type: 'GET',
+        success: function (data) {
+          procResponse(gridster,data,i);
+        },
+        error: function(data) {
+          console.log(data);
+        }
+      });
+    }else{
+      procResponse(gridster,null,i);
+    }
+  }
+
+  function fillDashobard(gridster) {
+    /*
+    badges is a json global variable defined in
+    badges_list.js
+    It is the data source with the information from
+    the badges we will like to create.
+    */
+    for (var i in badges) {
+      retrieveData(badges[i],gridster);
+    }
+   }
+
+   function GetClock(){
+     tday=new Array("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday");
+     tmonth=new Array("Jan.","Feb.","Mar.","Apr.","May","June","July","Aug.","Sept.","Oct.","Nov.","Dec.");
+
+     var d=new Date();
+     var nday=d.getDay(),nmonth=d.getMonth(),ndate=d.getDate(),nyear=d.getYear(),nhour=d.getHours(),nmin=d.getMinutes(),nsec=d.getSeconds(),ap;
+
+     if(nhour==0){ap=" AM";nhour=12;}
+     else if(nhour<12){ap=" AM";}
+     else if(nhour==12){ap=" PM";}
+     else if(nhour>12){ap=" PM";nhour-=12;}
+     if(nyear<1000) nyear+=1900;
+     if(nmin<=9) nmin="0"+nmin;
+     if(nsec<=9) nsec="0"+nsec;
+     document.getElementById('daybox').innerHTML=tday[nday];
+     document.getElementById('datebox').innerHTML=tmonth[nmonth]+" "+ndate+", "+nyear;
+     document.getElementById('timebox').innerHTML=nhour+":"+nmin+":"+nsec+ap+"";
+   }
+ </script>
+<footer>
+    <p style="text-align:center;"><a href="https://github.com/pystol/badgeboard">Changes, fixes and improvements for badgeboard can be submitted via pull requests</a></p>
+</footer>
+</body>
+</html>

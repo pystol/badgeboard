@@ -14,7 +14,7 @@ The badges are displayed as a CI dashboard.
 
 ## Demo
 
-Just [open the index.html](https://www.pystol.org/badgeboard)
+Just [open the index.html](https://badgeboard.pystol.org/)
 file and see how the dashboard is rendered.
 
 ## Requirements

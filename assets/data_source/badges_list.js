@@ -152,6 +152,17 @@ var badges = [
 	colors:[['status-warning','212,52,67'],['status-danger','197,105,30'],['status-good','149,195,14']],
 },
 {
+  type: 'badge',
+ 	size:{x:1,y:1},
+ 	position:{x:5,y:4},
+	uri: corssproxy + 'https://github.com/pystol/pystol/workflows/e2e-deploy-base-build/badge.svg?event=push',
+	title: "E2E base",
+	description: 'e2e install test',
+	link: 'http://www.bing.com',
+  measure:{x:150,y:5},
+	colors:[['status-warning','212,52,67'],['status-danger','197,105,30'],['status-good','48,196,82']],
+},
+{
 	type: 'badge',
 	size:{x:1,y:1},
 	position:{x:1,y:4},
